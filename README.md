@@ -1,0 +1,3 @@
+# LibGear
+
+Library Management System
