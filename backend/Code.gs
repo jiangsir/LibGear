@@ -110,11 +110,13 @@ function checkAuth() {
   try {
     const userEmail = Session.getActiveUser().getEmail();
     
+    // 開發模式：即使無法獲取郵箱，也返回 success: true
+    // 這樣前端可以繼續運行，只是沒有權限
     if (!userEmail) {
       return {
-        success: false,
+        success: true,  // API 調用成功
         hasPermission: false,
-        message: '無法獲取使用者信息',
+        message: '無法獲取使用者信息。請檢查部署設置：\n1. 執行身份應為「我」\n2. 存取權限應為「任何人」',
         email: '未知'
       };
     }

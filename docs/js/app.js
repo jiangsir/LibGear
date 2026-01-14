@@ -134,9 +134,10 @@ class LibGearApp {
   async verifyUser() {
     const result = await this.api.checkAuth();
     
+    // 只有 API 調用失敗時才拋出錯誤
     if (!result.success) {
-      console.error('驗證失敗:', result);
-      throw new Error(result.message || MESSAGES.ERROR.NO_PERMISSION);
+      console.error('API 調用失敗:', result);
+      throw new Error('無法連接到後端服務: ' + (result.message || '未知錯誤'));
     }
 
     this.currentUser = {
