@@ -135,7 +135,8 @@ class LibGearApp {
     const result = await this.api.checkAuth();
     
     if (!result.success) {
-      throw new Error(MESSAGES.ERROR.NO_PERMISSION);
+      console.error('驗證失敗:', result);
+      throw new Error(result.message || MESSAGES.ERROR.NO_PERMISSION);
     }
 
     this.currentUser = {
@@ -145,6 +146,13 @@ class LibGearApp {
     };
 
     console.log('使用者已驗證:', this.currentUser.email);
+    console.log('權限狀態:', result.hasPermission ? '✅ 已授權' : '⚠️ 未授權');
+    
+    // 如果沒有權限，顯示警告但不阻止使用
+    if (!result.hasPermission) {
+      this.showMessage('警告: ' + result.message, 'warning');
+      console.warn('請在 Google Sheets 的 users 工作表中新增您的郵箱:', result.email);
+    }
   }
 
   /**

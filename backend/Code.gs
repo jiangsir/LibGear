@@ -114,45 +114,61 @@ function checkAuth() {
       return {
         success: false,
         hasPermission: false,
-        message: '無法獲取使用者信息'
+        message: '無法獲取使用者信息',
+        email: '未知'
       };
     }
 
-    // 檢查郵箱域
-    if (!userEmail.endsWith(ALLOWED_DOMAIN)) {
-      return {
-        success: false,
-        hasPermission: false,
-        message: '不允許的郵箱域'
-      };
-    }
+    // 暫時註釋郵箱域檢查，方便開發測試
+    // 生產環境請取消註釋
+    // if (!userEmail.endsWith(ALLOWED_DOMAIN)) {
+    //   return {
+    //     success: true,
+    //     hasPermission: false,
+    //     message: '不允許的郵箱域: ' + userEmail,
+    //     email: userEmail
+    //   };
+    // }
 
     // 檢查 Users 表
-    const users = getSheet(SHEET_NAMES.USERS);
-    const data = users.getDataRange().getValues();
-    
-    let hasPermission = false;
-    let permission = '';
-    
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][1] === userEmail) { // B 欄是 email
-        hasPermission = true;
-        permission = data[i][2]; // C 欄是權限
-        break;
+    try {
+      const users = getSheet(SHEET_NAMES.USERS);
+      const data = users.getDataRange().getValues();
+      
+      let hasPermission = false;
+      let permission = '';
+      
+      for (let i = 1; i < data.length; i++) {
+        if (data[i][1] === userEmail) { // B 欄是 email
+          hasPermission = true;
+          permission = data[i][2]; // C 欄是權限
+          break;
+        }
       }
-    }
 
-    return {
-      success: hasPermission,
-      email: userEmail,
-      hasPermission: hasPermission,
-      permission: permission || '無'
-    };
+      return {
+        success: true,  // API 調用成功，總是返回 true
+        email: userEmail,
+        hasPermission: hasPermission,
+        permission: permission || '無',
+        message: hasPermission ? '已授權' : '此郵箱未在 users 表中，請新增: ' + userEmail
+      };
+    } catch (sheetError) {
+      // users 表不存在或讀取失敗
+      return {
+        success: true,
+        email: userEmail,
+        hasPermission: false,
+        permission: '無',
+        message: 'users 工作表錯誤: ' + sheetError.message
+      };
+    }
   } catch (error) {
     return {
       success: false,
       error: 'AUTH_ERROR',
-      message: error.message
+      message: '驗證錯誤: ' + error.message,
+      email: '錯誤'
     };
   }
 }
