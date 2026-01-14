@@ -578,6 +578,10 @@ class LibGearApp {
    * HTML 轉義
    */
   escapeHtml(text) {
+    // 處理 null, undefined, 或非字串類型
+    if (text == null) return '';
+    if (typeof text !== 'string') text = String(text);
+    
     const map = {
       '&': '&amp;',
       '<': '&lt;',
