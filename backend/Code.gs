@@ -14,7 +14,7 @@
 // ===== 設定值 =====
 const SHEET_ID = '1jcvw1Hfv_9oO2OhFT6huOPhMtnBr_hlR6TJv_8pr6U4'; // 替換為實際的 Google Sheet ID
 const ALLOWED_DOMAIN = '@tea.nknush.kh.edu.tw'; // 允許的郵箱域
-const VERSION = 'v1.2.0'; // 更新：改進 checkAuth 邏輯，支援開發模式
+const VERSION = 'v1.2.1'; // 更新：移除借用人驗證限制，任何學號都可借用
 
 // ===== 工作表名稱 =====
 const SHEET_NAMES = {
@@ -569,22 +569,12 @@ function findGearById(gearId) {
 
 /**
  * 驗證借用人
+ * 學生不需要在 users 表中，只要學號格式正確即可
  */
 function validateBorrower(borrowerId) {
-  try {
-    const users = getSheet(SHEET_NAMES.USERS);
-    const data = users.getDataRange().getValues();
-
-    for (let i = 1; i < data.length; i++) {
-      if (String(data[i][1]) === borrowerId) {
-        return true;
-      }
-    }
-    return false;
-  } catch (error) {
-    console.error('驗證借用人錯誤:', error);
-    return false;
-  }
+  // 學生可以是任何人，不檢查 users 表
+  // 只要學號格式正確（已在 recordBorrow 中檢查）就允許借用
+  return true;
 }
 
 /**
