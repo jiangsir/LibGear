@@ -98,9 +98,58 @@ class LibGearApp {
   }
 
   /**
+   * 處理 Google 登入
+   */
+  async handleGoogleLogin(idToken) {
+    try {
+      console.log('處理 Google 登入...');
+      
+      // 保存 ID Token
+      this.api.setIdToken(idToken);
+      
+      // 隱藏登入提示
+      if (this.loginPrompt) this.loginPrompt.style.display = 'none';
+      
+      // 重新初始化
+      await this.initialize();
+    } catch (error) {
+      console.error('登入處理失敗:', error);
+      this.showMessage('登入失敗: ' + error.message, 'error');
+    }
+  }
+
+  /**
+   * 處理登出
+   */
+  handleLogout() {
+    // 清除 ID Token
+    this.api.setIdToken(null);
+    this.currentUser = null;
+    
+    // 顯示登入提示
+    if (this.loginPrompt) this.loginPrompt.style.display = 'block';
+    if (this.loginStatus) this.loginStatus.style.display = 'none';
+    
+    // 清空界面
+    this.showMessage('已登出', 'info');
+    if (this.unreturnedTable) this.unreturnedTable.innerHTML = '';
+    if (this.recordsTable) this.recordsTable.innerHTML = '';
+  }
+
+  /**
    * 初始化應用
    */
   async initialize() {
+    // 檢查是否有 ID Token
+    const idToken = this.api.getIdToken();
+    if (!idToken) {
+      console.log('未登入，顯示登入提示');
+      if (this.loginPrompt) this.loginPrompt.style.display = 'block';
+      if (this.loginStatus) this.loginStatus.style.display = 'none';
+      this.showMessage('請先使用 Google 帳號登入', 'warning');
+      return;
+    }
+    
     this.showMessage('初始化中...', 'info');
     
     try {

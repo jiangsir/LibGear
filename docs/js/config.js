@@ -7,7 +7,7 @@ const API_CONFIG = {
   // Google Apps Script 部署 URL
   // 需要替換為實際的 DEPLOYMENT_ID
   API_URL: 'https://script.google.com/macros/s/AKfycbwpAlRkuTsH0zcdo104ZaH4msk-n9v-E5C8O2WUA4aJbDeMDskZ-w0t69mVq6tefjsu/exec',
-  
+
   // API 超時時間 (毫秒)
   TIMEOUT: 10000,
   

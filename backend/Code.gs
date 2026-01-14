@@ -14,7 +14,7 @@
 // ===== 設定值 =====
 const SHEET_ID = '1jcvw1Hfv_9oO2OhFT6huOPhMtnBr_hlR6TJv_8pr6U4'; // 替換為實際的 Google Sheet ID
 const ALLOWED_DOMAIN = '@tea.nknush.kh.edu.tw'; // 允許的郵箱域
-const VERSION = 'v1.1.0'; // 更新：改進 checkAuth 邏輯，支援開發模式
+const VERSION = 'v1.2.0'; // 更新：改進 checkAuth 邏輯，支援開發模式
 
 // ===== 工作表名稱 =====
 const SHEET_NAMES = {
@@ -61,7 +61,6 @@ function getSheet(sheetName) {
  */
 function doGet(e) {
   const userEmail = Session.getActiveUser().getEmail();
-  const effectiveEmail = Session.getEffectiveUser().getEmail();
   
   const html = `
     <!DOCTYPE html>
@@ -90,13 +89,8 @@ function doGet(e) {
           </div>
           
           <div class="status ${userEmail ? 'success' : 'error'}">
-            <strong>Session.getActiveUser().getEmail()：</strong><br>
+            <strong>使用者郵箱：</strong><br>
             ${userEmail || '<span style="color: red;">❌ 無法獲取（返回空值）</span>'}
-          </div>
-          
-          <div class="status info">
-            <strong>Session.getEffectiveUser().getEmail()：</strong><br>
-            ${effectiveEmail || '無'}
           </div>
           
           ${!userEmail ? `
@@ -135,6 +129,9 @@ function doPost(e) {
     const params = JSON.parse(e.postData.contents);
     const action = params.action;
 
+    // 提取 ID Token（如果有）
+    const idToken = params.idToken || null;
+    
     // 路由請求
     let result;
     switch (action) {
@@ -154,7 +151,7 @@ function doPost(e) {
         result = getGears();
         break;
       case 'checkAuth':
-        result = checkAuth();
+        result = checkAuth(idToken);
         break;
       case 'getVersion':
         result = { success: true, version: VERSION };
@@ -177,32 +174,43 @@ function doPost(e) {
 
 /**
  * 驗證使用者權限
+ * @param {string} idToken - Google ID Token（從前端傳來）
  */
-function checkAuth() {
+function checkAuth(idToken) {
   try {
-    const userEmail = Session.getActiveUser().getEmail();
+    let userEmail = null;
     
-    // 開發模式：即使無法獲取郵箱，也返回 success: true
-    // 這樣前端可以繼續運行，只是沒有權限
+    // 優先使用 ID Token 驗證（前端 Google Sign-In）
+    if (idToken) {
+      try {
+        // 解碼 ID Token 獲取郵箱
+        // Google ID Token 是 JWT，格式：header.payload.signature
+        const payload = Utilities.newBlob(Utilities.base64DecodeWebSafe(
+          idToken.split('.')[1]
+        )).getDataAsString();
+        const tokenData = JSON.parse(payload);
+        userEmail = tokenData.email;
+        console.log('從 ID Token 獲取郵箱:', userEmail);
+      } catch (tokenError) {
+        console.error('ID Token 解析失敗:', tokenError);
+      }
+    }
+    
+    // 如果沒有 ID Token，嘗試從 Session 獲取（直接訪問時）
     if (!userEmail) {
-      const effectiveEmail = Session.getEffectiveUser().getEmail();
+      userEmail = Session.getActiveUser().getEmail();
+      if (userEmail) {
+        console.log('從 Session 獲取郵箱:', userEmail);
+      }
+    }
+    
+    // 如果還是無法獲取郵箱
+    if (!userEmail) {
       return {
-        success: true,  // API 調用成功
+        success: true,
         hasPermission: false,
-        message: '❌ 部署設置錯誤：無法獲取使用者資訊\n\n' +
-                 '請重新部署並確認：\n' +
-                 '1. 點擊「部署」→「管理部署」→ ✏️ 編輯\n' +
-                 '2. 「執行身份」務必選擇「我」（非常重要！）\n' +
-                 '3. 「存取權限」選擇「任何人」\n' +
-                 '4. 新建版本後重新部署\n\n' +
-                 '目前狀態：\n' +
-                 '- getActiveUser: ' + (userEmail || '空值 ❌') + '\n' +
-                 '- getEffectiveUser: ' + (effectiveEmail || '空值'),
-        email: '未知',
-        debug: {
-          activeUser: userEmail || null,
-          effectiveUser: effectiveEmail || null
-        }
+        message: '❌ 無法獲取使用者資訊\n請使用 Google 帳號登入',
+        email: '未知'
       };
     }
 

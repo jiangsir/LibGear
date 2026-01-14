@@ -9,6 +9,32 @@ class APIClient {
     this.timeout = timeout;
     this.retries = 3;
     this.retryDelay = 1000;
+    this.idToken = null; // Google ID Token
+  }
+
+  /**
+   * 設置 ID Token
+   * @param {string} token - Google ID Token
+   */
+  setIdToken(token) {
+    this.idToken = token;
+    // 保存到 sessionStorage
+    if (token) {
+      sessionStorage.setItem('google_id_token', token);
+    } else {
+      sessionStorage.removeItem('google_id_token');
+    }
+  }
+
+  /**
+   * 獲取 ID Token
+   * @returns {string|null}
+   */
+  getIdToken() {
+    if (!this.idToken) {
+      this.idToken = sessionStorage.getItem('google_id_token');
+    }
+    return this.idToken;
   }
 
   /**
@@ -22,9 +48,15 @@ class APIClient {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
+      // 添加 ID Token 到請求參數
+      const requestParams = {
+        ...params,
+        idToken: this.getIdToken()
+      };
+
       const response = await fetch(this.baseURL, {
         method: 'POST',
-        body: JSON.stringify(params),
+        body: JSON.stringify(requestParams),
         signal: controller.signal
       });
 
@@ -131,6 +163,7 @@ class APIClient {
    * @returns {Promise<Object>}
    */
   async checkAuth() {
+    // idToken 會在 request() 中自動添加
     return this.request({
       action: 'checkAuth'
     });
