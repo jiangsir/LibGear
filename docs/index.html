@@ -16,6 +16,9 @@
     
     <!-- 自訂樣式 -->
     <link href="css/style.css" rel="stylesheet">
+    
+    <!-- Google Sign-In SDK -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
     <div class="container-fluid">
@@ -25,12 +28,46 @@
                 <span class="navbar-brand mb-0 h1">
                     <i class="bi bi-device-hdd"></i> 圖書館設備借還系統
                 </span>
-                <span class="navbar-text text-white" id="user-info">載入中...</span>
+                <div id="auth-container">
+                    <!-- 未登入狀態 -->
+                    <div id="login-section" style="display: none;">
+                        <div id="g_id_onload"
+                             data-client_id="YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com"
+                             data-callback="handleCredentialResponse"
+                             data-auto_prompt="false">
+                        </div>
+                        <div class="g_id_signin"
+                             data-type="standard"
+                             data-size="large"
+                             data-theme="filled_blue"
+                             data-text="sign_in_with"
+                             data-shape="rectangular"
+                             data-logo_alignment="left">
+                        </div>
+                    </div>
+                    <!-- 已登入狀態 -->
+                    <div id="user-info-section" style="display: none;">
+                        <span class="navbar-text text-white me-3">
+                            <i class="bi bi-person-circle"></i>
+                            <span id="user-email"></span>
+                            <span id="permission-badge" class="ms-2"></span>
+                        </span>
+                        <button id="logout-btn" class="btn btn-sm btn-outline-light">登出</button>
+                    </div>
+                </div>
             </div>
         </nav>
 
         <!-- 主容器 -->
         <div class="container">
+            <!-- 登入提示 -->
+            <div id="login-prompt" class="alert alert-warning alert-dismissible fade show" style="display: none;" role="alert">
+                <h5 class="alert-heading"><i class="bi bi-shield-lock"></i> 需要登入</h5>
+                <p>請使用學校 Google 帳號登入以使用設備借還功能。</p>
+                <hr>
+                <p class="mb-0">點擊右上角的 Google 登入按鈕開始使用。</p>
+            </div>
+            
             <!-- 訊息區域 -->
             <div id="message" class="alert alert-info d-none alert-dismissible fade show" role="alert"></div>
 

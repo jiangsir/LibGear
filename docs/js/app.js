@@ -2,6 +2,14 @@
  * LibGear - 前端應用邏輯
  */
 
+// Google Sign-In 回調函數（必須是全局函數）
+function handleCredentialResponse(response) {
+  console.log('收到 Google 登入憑證');
+  if (window.libGearApp) {
+    window.libGearApp.handleGoogleLogin(response.credential);
+  }
+}
+
 class LibGearApp {
   constructor(apiClient) {
     this.api = apiClient;
@@ -9,6 +17,9 @@ class LibGearApp {
     this.gears = [];
     this.unreturned = [];
     this.currentDate = new Date().toISOString().split('T')[0];
+    
+    // 設置全局引用供 Google 回調使用
+    window.libGearApp = this;
     
     this.initializeElements();
     this.attachEventListeners();
@@ -45,6 +56,14 @@ class LibGearApp {
     if (this.dateInput) {
       this.dateInput.value = this.currentDate;
     }
+    
+    // 登入相關元素
+    this.loginSection = document.getElementById('login-section');
+    this.userInfoSection = document.getElementById('user-info-section');
+    this.loginPrompt = document.getElementById('login-prompt');
+    this.userEmailSpan = document.getElementById('user-email');
+    this.permissionBadge = document.getElementById('permission-badge');
+    this.logoutBtn = document.getElementById('logout-btn');
   }
 
   /**
@@ -54,6 +73,11 @@ class LibGearApp {
     // 借出按鈕
     if (this.borrowBtn) {
       this.borrowBtn.addEventListener('click', () => this.handleBorrow());
+    }
+
+    // 登出按鈕
+    if (this.logoutBtn) {
+      this.logoutBtn.addEventListener('click', () => this.handleLogout());
     }
 
     // 歸還按鈕
@@ -104,6 +128,52 @@ class LibGearApp {
     try {
       console.log('處理 Google 登入...');
       
+      // 保存 ID Token 到 API Client
+      this.api.setIdToken(idToken);
+      
+      // 隱藏登入提示和登入按鈕
+      if (this.loginPrompt) this.loginPrompt.style.display = 'none';
+      if (this.loginSection) this.loginSection.style.display = 'none';
+      
+      // 初始化應用
+      await this.initialize();
+    } catch (error) {
+      console.error('登入處理失敗:', error);
+      this.showMessage('登入失敗: ' + error.message, 'danger');
+    }
+  }
+
+  /**
+   * 處理登出
+   */
+  handleLogout() {
+    console.log('登出');
+    
+    // 清除 ID Token
+    this.api.setIdToken(null);
+    this.currentUser = null;
+    
+    // 顯示登入按鈕
+    if (this.loginSection) this.loginSection.style.display = 'block';
+    if (this.userInfoSection) this.userInfoSection.style.display = 'none';
+    if (this.loginPrompt) this.loginPrompt.style.display = 'block';
+    
+    // 清空數據
+    this.gears = [];
+    this.unreturned = [];
+    if (this.unreturnedTable) this.unreturnedTable.innerHTML = '';
+    if (this.recordsTableBody) this.recordsTableBody.innerHTML = '';
+    
+    this.showMessage('已登出', 'info');
+  }
+
+  /**
+   * 處理 Google 登入
+   */
+  async handleGoogleLogin(idToken) {
+    try {
+      console.log('處理 Google 登入...');
+      
       // 保存 ID Token
       this.api.setIdToken(idToken);
       
@@ -145,7 +215,8 @@ class LibGearApp {
     if (!idToken) {
       console.log('未登入，顯示登入提示');
       if (this.loginPrompt) this.loginPrompt.style.display = 'block';
-      if (this.loginStatus) this.loginStatus.style.display = 'none';
+      if (this.loginSection) this.loginSection.style.display = 'block';
+      if (this.userInfoSection) this.userInfoSection.style.display = 'none';
       this.showMessage('請先使用 Google 帳號登入', 'warning');
       return;
     }
@@ -214,6 +285,16 @@ class LibGearApp {
 
     console.log('使用者已驗證:', this.currentUser.email);
     console.log('權限狀態:', result.hasPermission ? '✅ 已授權' : '⚠️ 未授權');
+    
+    // 更新 UI 顯示
+    if (this.loginSection) this.loginSection.style.display = 'none';
+    if (this.userInfoSection) this.userInfoSection.style.display = 'block';
+    if (this.userEmailSpan) this.userEmailSpan.textContent = this.currentUser.email;
+    if (this.permissionBadge) {
+      this.permissionBadge.innerHTML = result.hasPermission
+        ? '<span class="badge bg-success">有權限</span>'
+        : '<span class="badge bg-warning">無權限</span>';
+    }
     
     // 如果沒有權限，顯示警告但不阻止使用
     if (!result.hasPermission) {
