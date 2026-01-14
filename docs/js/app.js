@@ -104,6 +104,9 @@ class LibGearApp {
     this.showMessage('初始化中...', 'info');
     
     try {
+      // 檢查後端版本
+      await this.checkVersion();
+      
       // 驗證使用者
       await this.verifyUser();
       
@@ -125,6 +128,20 @@ class LibGearApp {
     } catch (error) {
       this.showMessage('初始化失敗: ' + error.message, 'error');
       console.error('初始化錯誤:', error);
+    }
+  }
+
+  /**
+   * 檢查後端版本
+   */
+  async checkVersion() {
+    try {
+      const result = await this.api.getVersion();
+      if (result.success && result.version) {
+        console.log(`%c📚 LibGear 後端版本: ${result.version}`, 'color: #4285f4; font-weight: bold; font-size: 14px;');
+      }
+    } catch (error) {
+      console.warn('無法獲取後端版本:', error.message);
     }
   }
 

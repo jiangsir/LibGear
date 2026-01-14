@@ -14,7 +14,7 @@
 // ===== 設定值 =====
 const SHEET_ID = '1jcvw1Hfv_9oO2OhFT6huOPhMtnBr_hlR6TJv_8pr6U4'; // 替換為實際的 Google Sheet ID
 const ALLOWED_DOMAIN = '@tea.nknush.kh.edu.tw'; // 允許的郵箱域
-const VERSION = 'v1.0.0';
+const VERSION = 'v1.1.0'; // 更新：改進 checkAuth 邏輯，支援開發模式
 
 // ===== 工作表名稱 =====
 const SHEET_NAMES = {
@@ -53,6 +53,78 @@ function getSheet(sheetName) {
     sheetsCache[sheetName] = sheet;
   }
   return sheetsCache[sheetName];
+}
+
+/**
+ * 測試函數 - 在瀏覽器中打開部署 URL 可看到此頁面
+ * 這也會觸發權限授權
+ */
+function doGet(e) {
+  const userEmail = Session.getActiveUser().getEmail();
+  const effectiveEmail = Session.getEffectiveUser().getEmail();
+  
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>LibGear 後端狀態</title>
+        <style>
+          body { font-family: 'Microsoft JhengHei', Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+          .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+          h1 { color: #333; border-bottom: 3px solid #4285f4; padding-bottom: 10px; }
+          .status { padding: 15px; margin: 10px 0; border-radius: 5px; }
+          .success { background: #d4edda; border-left: 4px solid #28a745; }
+          .warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+          .error { background: #f8d7da; border-left: 4px solid #dc3545; }
+          .info { background: #d1ecf1; border-left: 4px solid #17a2b8; }
+          code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: 'Courier New', monospace; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <h1>📚 LibGear 後端系統</h1>
+          
+          <div class="status info">
+            <strong>版本：</strong> ${VERSION}
+          </div>
+          
+          <div class="status ${userEmail ? 'success' : 'error'}">
+            <strong>Session.getActiveUser().getEmail()：</strong><br>
+            ${userEmail || '<span style="color: red;">❌ 無法獲取（返回空值）</span>'}
+          </div>
+          
+          <div class="status info">
+            <strong>Session.getEffectiveUser().getEmail()：</strong><br>
+            ${effectiveEmail || '無'}
+          </div>
+          
+          ${!userEmail ? `
+          <div class="status error">
+            <h3>⚠️ 部署設置錯誤</h3>
+            <p>無法獲取使用者郵箱，請檢查部署設置：</p>
+            <ol>
+              <li>點擊「<strong>部署</strong>」→「<strong>管理部署</strong>」</li>
+              <li>點擊現有部署旁的 <strong>✏️ 編輯</strong> 圖標</li>
+              <li><strong>執行身份</strong>：必須選擇「<code>我</code>」（不是「存取網頁應用程式的使用者」）</li>
+              <li><strong>具有應用程式存取權的使用者</strong>：選擇「<code>任何人</code>」</li>
+              <li>點擊「<strong>版本</strong>」→ 選擇「<strong>新版本</strong>」</li>
+              <li>點擊「<strong>部署</strong>」</li>
+            </ol>
+            <p><strong style="color: red;">關鍵：</strong>「執行身份」選項若選錯，將無法獲取使用者資訊！</p>
+          </div>
+          ` : ''}
+          
+          <div class="status success">
+            <strong>✅ API 已就緒</strong><br>
+            POST 請求至此 URL 即可使用 API
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  return HtmlService.createHtmlOutput(html);
 }
 
 /**
@@ -113,11 +185,24 @@ function checkAuth() {
     // 開發模式：即使無法獲取郵箱，也返回 success: true
     // 這樣前端可以繼續運行，只是沒有權限
     if (!userEmail) {
+      const effectiveEmail = Session.getEffectiveUser().getEmail();
       return {
         success: true,  // API 調用成功
         hasPermission: false,
-        message: '無法獲取使用者信息。請檢查部署設置：\n1. 執行身份應為「我」\n2. 存取權限應為「任何人」',
-        email: '未知'
+        message: '❌ 部署設置錯誤：無法獲取使用者資訊\n\n' +
+                 '請重新部署並確認：\n' +
+                 '1. 點擊「部署」→「管理部署」→ ✏️ 編輯\n' +
+                 '2. 「執行身份」務必選擇「我」（非常重要！）\n' +
+                 '3. 「存取權限」選擇「任何人」\n' +
+                 '4. 新建版本後重新部署\n\n' +
+                 '目前狀態：\n' +
+                 '- getActiveUser: ' + (userEmail || '空值 ❌') + '\n' +
+                 '- getEffectiveUser: ' + (effectiveEmail || '空值'),
+        email: '未知',
+        debug: {
+          activeUser: userEmail || null,
+          effectiveUser: effectiveEmail || null
+        }
       };
     }
 
