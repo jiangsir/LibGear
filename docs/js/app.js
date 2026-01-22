@@ -64,6 +64,14 @@ class LibGearApp {
     this.userEmailSpan = document.getElementById('user-email');
     this.permissionBadge = document.getElementById('permission-badge');
     this.logoutBtn = document.getElementById('logout-btn');
+    
+    // 照片相關元素
+    this.photoInput = document.getElementById('photo-input');
+    this.takePhotoBtn = document.getElementById('take-photo-btn');
+    this.photoPreview = document.getElementById('photo-preview');
+    this.previewImg = document.getElementById('preview-img');
+    this.removePhotoBtn = document.getElementById('remove-photo-btn');
+    this.currentPhotoBase64 = null; // 儲存壓縮後的照片
   }
 
   /**
@@ -88,6 +96,16 @@ class LibGearApp {
     // 清除按鈕
     if (this.clearBtn) {
       this.clearBtn.addEventListener('click', () => this.clearInputs());
+    }
+
+    // 拍照相關
+    if (this.takePhotoBtn && this.photoInput) {
+      this.takePhotoBtn.addEventListener('click', () => this.photoInput.click());
+      this.photoInput.addEventListener('change', (e) => this.handlePhotoSelect(e));
+    }
+
+    if (this.removePhotoBtn) {
+      this.removePhotoBtn.addEventListener('click', () => this.removePhoto());
     }
 
     // 標籤頁點擊
@@ -324,6 +342,103 @@ class LibGearApp {
   }
 
   /**
+   * 處理照片選擇
+   */
+  async handlePhotoSelect(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // 檢查文件類型
+    if (!file.type.startsWith('image/')) {
+      this.showMessage('請選擇圖片文件', 'warning');
+      return;
+    }
+
+    // 檢查文件大小 (限制 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      this.showMessage('圖片文件過大，請選擇小於 10MB 的圖片', 'warning');
+      return;
+    }
+
+    this.showMessage('正在處理照片...', 'info');
+
+    try {
+      // 壓縮圖片
+      const compressedBase64 = await this.compressImage(file);
+      this.currentPhotoBase64 = compressedBase64;
+
+      // 顯示預覽
+      this.previewImg.src = compressedBase64;
+      this.photoPreview.style.display = 'block';
+
+      this.showMessage('照片已準備好', 'success');
+    } catch (error) {
+      console.error('處理照片失敗:', error);
+      this.showMessage('處理照片失敗: ' + error.message, 'error');
+      this.removePhoto();
+    }
+  }
+
+  /**
+   * 壓縮圖片
+   */
+  compressImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      
+      reader.onload = (e) => {
+        const img = new Image();
+        
+        img.onload = () => {
+          // 創建 canvas
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+
+          // 計算縮放比例 (最大寬高 800px)
+          const maxSize = 800;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          } else if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+
+          // 設定 canvas 尺寸
+          canvas.width = width;
+          canvas.height = height;
+
+          // 繪製圖片
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // 轉換為 Base64 (JPEG, 70% 質量)
+          const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+          resolve(compressedBase64);
+        };
+
+        img.onerror = () => reject(new Error('無法載入圖片'));
+        img.src = e.target.result;
+      };
+
+      reader.onerror = () => reject(new Error('無法讀取文件'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * 移除照片
+   */
+  removePhoto() {
+    this.currentPhotoBase64 = null;
+    this.photoPreview.style.display = 'none';
+    this.previewImg.src = '';
+    this.photoInput.value = '';
+  }
+
+  /**
    * 處理借出
    */
   async handleBorrow() {
@@ -350,7 +465,26 @@ class LibGearApp {
     this.disableInputs(true);
 
     try {
-      const result = await this.api.recordBorrow(borrowerId, gearId);
+      let photoUrl = null;
+
+      // 如果有照片，先上傳到 Drive
+      if (this.currentPhotoBase64) {
+        this.showMessage('正在上傳照片...', 'info');
+        const fileName = `${borrowerId}_${gearId}_${Date.now()}.jpg`;
+        
+        const uploadResult = await this.api.uploadPhoto(this.currentPhotoBase64, fileName);
+        
+        if (uploadResult.success) {
+          photoUrl = uploadResult.url;
+          console.log('照片上傳成功:', photoUrl);
+        } else {
+          console.warn('照片上傳失敗:', uploadResult.error);
+          // 照片上傳失敗不影響借用流程
+        }
+      }
+
+      // 記錄借用
+      const result = await this.api.recordBorrow(borrowerId, gearId, photoUrl);
 
       if (result.success) {
         this.showMessage(MESSAGES.SUCCESS.BORROW, 'success');
@@ -465,17 +599,27 @@ class LibGearApp {
     tbody.innerHTML = '';
 
     if (this.unreturned.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">目前無未歸還設備</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">目前無未歸還設備</td></tr>';
       return;
     }
 
     this.unreturned.forEach(record => {
       const row = document.createElement('tr');
+      
+      // 照片欄位
+      let photoCell = '-';
+      if (record.photoUrl) {
+        photoCell = `<a href="${this.escapeHtml(record.photoUrl)}" target="_blank" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-image"></i> 查看照片
+        </a>`;
+      }
+      
       row.innerHTML = `
         <td>${this.escapeHtml(record.borrowerId)}</td>
         <td>${this.escapeHtml(record.gear)}</td>
         <td>${this.formatTime(record.borrowTime)}</td>
         <td>${this.calculateDuration(record.borrowTime)}</td>
+        <td>${photoCell}</td>
       `;
       tbody.appendChild(row);
     });
@@ -490,7 +634,7 @@ class LibGearApp {
     this.recordsTableBody.innerHTML = '';
 
     if (!records || records.length === 0) {
-      this.recordsTableBody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">此日期無借用記錄</td></tr>';
+      this.recordsTableBody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">此日期無借用記錄</td></tr>';
       return;
     }
 
@@ -499,12 +643,21 @@ class LibGearApp {
       const status = record.returnTime ? '已歸還' : '借出中';
       const statusClass = record.returnTime ? 'success' : 'warning';
       
+      // 照片欄位
+      let photoCell = '-';
+      if (record.photoUrl) {
+        photoCell = `<a href="${this.escapeHtml(record.photoUrl)}" target="_blank" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-image"></i> 查看照片
+        </a>`;
+      }
+      
       row.innerHTML = `
         <td>${this.escapeHtml(record.borrowerId)}</td>
         <td>${this.escapeHtml(record.gear)}</td>
         <td>${this.formatTime(record.borrowTime)}</td>
         <td>${record.returnTime ? this.formatTime(record.returnTime) : '-'}</td>
         <td><span class="badge bg-${statusClass}">${status}</span></td>
+        <td>${photoCell}</td>
       `;
       this.recordsTableBody.appendChild(row);
     });
@@ -516,6 +669,7 @@ class LibGearApp {
   clearInputs() {
     if (this.borrowerIdInput) this.borrowerIdInput.value = '';
     if (this.gearIdInput) this.gearIdInput.value = '';
+    this.removePhoto(); // 清除照片
   }
 
   /**

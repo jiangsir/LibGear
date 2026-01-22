@@ -99,16 +99,33 @@ class APIClient {
   }
 
   /**
+   * 上傳照片到 Google Drive
+   * @param {string} photoBase64 - Base64 編碼的照片
+   * @param {string} fileName - 檔案名稱
+   * @returns {Promise<Object>}
+   */
+  async uploadPhoto(photoBase64, fileName) {
+    return this.request({
+      action: 'uploadPhoto',
+      photoBase64,
+      fileName
+    });
+  }
+
+  /**
    * 記錄設備借出
    * @param {string} borrowerId - 借用人學號
    * @param {string} gearId - 設備條碼
+   * @param {string} photoUrl - 照片 URL (選填)
    * @returns {Promise<Object>}
    */
-  async recordBorrow(borrowerId, gearId) {
+  async recordBorrow(borrowerId, gearId, photoUrl = null) {
     return this.request({
       action: 'recordBorrow',
       borrowerId,
-      gearId
+      gearId,
+      photoUrl
+    });
     });
   }
 

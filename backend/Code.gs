@@ -14,7 +14,7 @@
 // ===== 設定值 =====
 const SHEET_ID = '1jcvw1Hfv_9oO2OhFT6huOPhMtnBr_hlR6TJv_8pr6U4'; // 替換為實際的 Google Sheet ID
 const ALLOWED_DOMAIN = '@tea.nknush.kh.edu.tw'; // 允許的郵箱域
-const BACKEND_VERSION = 'v1.2.1'; // 更新：移除借用人驗證限制，任何學號都可借用
+const BACKEND_VERSION = 'v1.3.0'; // 更新：新增照片上傳功能
 
 // ===== 工作表名稱 =====
 const SHEET_NAMES = {
@@ -136,7 +136,7 @@ function doPost(e) {
     let result;
     switch (action) {
       case 'recordBorrow':
-        result = recordBorrow(params.borrowerId, params.gearId);
+        result = recordBorrow(params.borrowerId, params.gearId, params.photoUrl);
         break;
       case 'recordReturn':
         result = recordReturn(params.borrowerId, params.gearId);
@@ -152,6 +152,9 @@ function doPost(e) {
         break;
       case 'checkAuth':
         result = checkAuth(idToken);
+        break;
+      case 'uploadPhoto':
+        result = uploadPhoto(params.photoBase64, params.fileName);
         break;
       case 'getVersion':
         result = { success: true, version: BACKEND_VERSION };
@@ -270,8 +273,9 @@ function checkAuth(idToken) {
 
 /**
  * 記錄設備借出
+ * @param {string} photoUrl - 照片 Google Drive URL（可選）
  */
-function recordBorrow(borrowerId, gearId) {
+function recordBorrow(borrowerId, gearId, photoUrl) {
   try {
     // 驗證輸入
     if (!borrowerId || !gearId) {
@@ -337,7 +341,7 @@ function recordBorrow(borrowerId, gearId) {
     // 新增記錄
     const timestamp = getCurrentTimestamp();
     const records = getSheet(SHEET_NAMES.RECORDS);
-    records.appendRow([borrowerId, gearInfo.name, timestamp, '']);
+    records.appendRow([borrowerId, gearInfo.name, timestamp, '', photoUrl || '']);
 
     return {
       success: true,
@@ -346,7 +350,8 @@ function recordBorrow(borrowerId, gearId) {
         borrowerId: borrowerId,
         gear: gearInfo.name,
         borrowTime: timestamp,
-        returnTime: null
+        returnTime: null,
+        photoUrl: photoUrl || null
       }
     };
   } catch (error) {
@@ -449,7 +454,8 @@ function getUnreturnedGears() {
           borrowerId: data[i][0],
           gear: data[i][1],
           borrowTime: data[i][2],
-          duration: calculateDuration(data[i][2], new Date())
+          duration: calculateDuration(data[i][2], new Date()),
+          photoUrl: data[i][4] || null // E 欄為照片 URL
         });
       }
     }
@@ -488,7 +494,8 @@ function getRecordsByDate(dateStr) {
           gear: data[i][1],
           borrowTime: borrowTime,
           returnTime: data[i][3] || null,
-          status: data[i][3] ? '已歸還' : '借出中'
+          status: data[i][3] ? '已歸還' : '借出中',
+          photoUrl: data[i][4] || null // E 欄為照片 URL
         });
       }
     }
@@ -619,6 +626,53 @@ function formatDate(date) {
     return Utilities.formatDate(date, Session.getScriptTimeZone(), 'yyyy-MM-dd');
   }
   return '';
+}
+
+/**
+ * 上傳照片到 Google Drive
+ * @param {string} photoBase64 - Base64 編碼的照片資料
+ * @param {string} fileName - 檔案名稱
+ * @returns {object} 包含 fileId 和 url 的物件
+ */
+function uploadPhoto(photoBase64, fileName) {
+  try {
+    // 移除 Base64 前綴 (data:image/jpeg;base64,)
+    const base64Data = photoBase64.replace(/^data:image\/\w+;base64,/, '');
+    
+    // 將 Base64 轉換為 Blob
+    const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), 'image/jpeg', fileName);
+    
+    // 取得或建立 LibGear_Photos 資料夾
+    const folderName = 'LibGear_Photos';
+    let folder;
+    const folders = DriveApp.getFoldersByName(folderName);
+    if (folders.hasNext()) {
+      folder = folders.next();
+    } else {
+      folder = DriveApp.createFolder(folderName);
+    }
+    
+    // 上傳檔案到資料夾
+    const file = folder.createFile(blob);
+    
+    // 設定權限為任何人都可以查看
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    
+    const fileId = file.getId();
+    const url = `https://drive.google.com/uc?id=${fileId}`;
+    
+    return {
+      success: true,
+      fileId: fileId,
+      url: url
+    };
+  } catch (error) {
+    Logger.log('Upload photo error: ' + error.toString());
+    return {
+      success: false,
+      error: error.toString()
+    };
+  }
 }
 
 /**
