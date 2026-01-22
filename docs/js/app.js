@@ -71,7 +71,29 @@ class LibGearApp {
     this.photoPreview = document.getElementById('photo-preview');
     this.previewImg = document.getElementById('preview-img');
     this.removePhotoBtn = document.getElementById('remove-photo-btn');
+    this.editPhotoBtn = document.getElementById('edit-photo-btn');
     this.currentPhotoBase64 = null; // 儲存壓縮後的照片
+
+    // 簡易修圖元素
+    this.photoEditorModal = document.getElementById('photo-editor-modal');
+    this.photoEditorCanvas = document.getElementById('photo-editor-canvas');
+    this.brightnessRange = document.getElementById('brightness-range');
+    this.contrastRange = document.getElementById('contrast-range');
+    this.rotateLeftBtn = document.getElementById('rotate-left-btn');
+    this.rotateRightBtn = document.getElementById('rotate-right-btn');
+    this.cropSquareToggle = document.getElementById('crop-square-toggle');
+    this.resetEditBtn = document.getElementById('reset-edit-btn');
+    this.applyEditBtn = document.getElementById('apply-edit-btn');
+
+    this.photoEditorModalInstance = this.photoEditorModal ? new bootstrap.Modal(this.photoEditorModal, {
+      backdrop: 'static',
+      keyboard: false
+    }) : null;
+
+    this.editorImage = null;
+    this.editorState = null;
+    this.editorApplied = false;
+    this.photoBackup = null;
   }
 
   /**
@@ -115,6 +137,69 @@ class LibGearApp {
 
     if (this.removePhotoBtn) {
       this.removePhotoBtn.addEventListener('click', () => this.removePhoto());
+    }
+
+    if (this.editPhotoBtn) {
+      this.editPhotoBtn.addEventListener('click', () => this.openEditorWithCurrentPhoto());
+    }
+
+    if (this.brightnessRange) {
+      this.brightnessRange.addEventListener('input', () => {
+        if (!this.editorState) return;
+        this.editorState.brightness = parseFloat(this.brightnessRange.value);
+        this.updateEditorPreview();
+      });
+    }
+
+    if (this.contrastRange) {
+      this.contrastRange.addEventListener('input', () => {
+        if (!this.editorState) return;
+        this.editorState.contrast = parseFloat(this.contrastRange.value);
+        this.updateEditorPreview();
+      });
+    }
+
+    if (this.rotateLeftBtn) {
+      this.rotateLeftBtn.addEventListener('click', () => {
+        if (!this.editorState) return;
+        this.editorState.rotation = (this.editorState.rotation - 90 + 360) % 360;
+        this.updateEditorPreview();
+      });
+    }
+
+    if (this.rotateRightBtn) {
+      this.rotateRightBtn.addEventListener('click', () => {
+        if (!this.editorState) return;
+        this.editorState.rotation = (this.editorState.rotation + 90) % 360;
+        this.updateEditorPreview();
+      });
+    }
+
+    if (this.cropSquareToggle) {
+      this.cropSquareToggle.addEventListener('change', () => {
+        if (!this.editorState) return;
+        this.editorState.cropSquare = this.cropSquareToggle.checked;
+        this.updateEditorPreview();
+      });
+    }
+
+    if (this.resetEditBtn) {
+      this.resetEditBtn.addEventListener('click', () => this.resetEditorState());
+    }
+
+    if (this.applyEditBtn) {
+      this.applyEditBtn.addEventListener('click', () => this.applyEditorChanges());
+    }
+
+    if (this.photoEditorModal) {
+      this.photoEditorModal.addEventListener('hidden.bs.modal', () => {
+        if (!this.editorApplied) {
+          this.restorePhotoBackup();
+        }
+        this.editorApplied = false;
+        this.editorImage = null;
+        this.editorState = null;
+      });
     }
 
     // 標籤頁點擊
@@ -389,23 +474,216 @@ class LibGearApp {
       return;
     }
 
-    this.showMessage('正在處理照片...', 'info');
+    this.showMessage('正在載入照片...', 'info');
 
     try {
-      // 壓縮圖片
-      const compressedBase64 = await this.compressImage(file);
-      this.currentPhotoBase64 = compressedBase64;
-
-      // 顯示預覽
-      this.previewImg.src = compressedBase64;
-      this.photoPreview.style.display = 'block';
-
-      this.showMessage('照片已準備好', 'success');
+      this.backupCurrentPhoto();
+      const dataUrl = await this.readFileAsDataURL(file);
+      const img = await this.loadImage(dataUrl);
+      this.openPhotoEditor(img);
     } catch (error) {
       console.error('處理照片失敗:', error);
       this.showMessage('處理照片失敗: ' + error.message, 'error');
       this.removePhoto();
     }
+  }
+
+  /**
+   * 讀取檔案為 DataURL
+   */
+  readFileAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = () => reject(new Error('無法讀取文件'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /**
+   * 載入圖片
+   */
+  loadImage(dataUrl) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error('無法載入圖片'));
+      img.src = dataUrl;
+    });
+  }
+
+  /**
+   * 開啟修圖視窗
+   */
+  openPhotoEditor(img) {
+    if (!this.photoEditorModalInstance || !this.photoEditorCanvas) {
+      this.showMessage('修圖功能初始化失敗', 'warning');
+      return;
+    }
+
+    this.editorImage = img;
+    this.resetEditorState();
+    this.photoEditorModalInstance.show();
+  }
+
+  /**
+   * 編輯已選照片
+   */
+  async openEditorWithCurrentPhoto() {
+    if (!this.currentPhotoBase64) {
+      this.showMessage('目前沒有可編輯的照片', 'warning');
+      return;
+    }
+
+    try {
+      this.backupCurrentPhoto();
+      const img = await this.loadImage(this.currentPhotoBase64);
+      this.openPhotoEditor(img);
+    } catch (error) {
+      this.showMessage('載入照片失敗: ' + error.message, 'error');
+    }
+  }
+
+  /**
+   * 重設修圖狀態
+   */
+  resetEditorState() {
+    if (!this.editorImage) return;
+
+    this.editorState = {
+      brightness: 1,
+      contrast: 1,
+      rotation: 0,
+      cropSquare: false
+    };
+
+    if (this.brightnessRange) this.brightnessRange.value = '1';
+    if (this.contrastRange) this.contrastRange.value = '1';
+    if (this.cropSquareToggle) this.cropSquareToggle.checked = false;
+
+    this.updateEditorPreview();
+  }
+
+  /**
+   * 更新修圖預覽
+   */
+  updateEditorPreview() {
+    if (!this.editorImage || !this.photoEditorCanvas || !this.editorState) return;
+
+    const img = this.editorImage;
+    const canvas = this.photoEditorCanvas;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let sx = 0;
+    let sy = 0;
+    let sw = img.width;
+    let sh = img.height;
+
+    if (this.editorState.cropSquare) {
+      const side = Math.min(sw, sh);
+      sx = (sw - side) / 2;
+      sy = (sh - side) / 2;
+      sw = side;
+      sh = side;
+    }
+
+    const rotation = this.editorState.rotation % 360;
+    const rotated = rotation === 90 || rotation === 270;
+    const outW = rotated ? sh : sw;
+    const outH = rotated ? sw : sh;
+
+    canvas.width = outW;
+    canvas.height = outH;
+
+    ctx.save();
+    ctx.clearRect(0, 0, outW, outH);
+    ctx.filter = `brightness(${this.editorState.brightness}) contrast(${this.editorState.contrast})`;
+    ctx.translate(outW / 2, outH / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.drawImage(img, sx, sy, sw, sh, -sw / 2, -sh / 2, sw, sh);
+    ctx.restore();
+  }
+
+  /**
+   * 套用修圖並產生壓縮 Base64
+   */
+  applyEditorChanges() {
+    if (!this.photoEditorCanvas) return;
+
+    const compressedBase64 = this.exportEditedImage();
+    this.currentPhotoBase64 = compressedBase64;
+
+    this.previewImg.src = compressedBase64;
+    this.photoPreview.style.display = 'block';
+    this.editorApplied = true;
+    this.photoBackup = null;
+
+    if (this.photoEditorModalInstance) {
+      this.photoEditorModalInstance.hide();
+    }
+
+    this.showMessage('照片已套用修圖', 'success');
+  }
+
+  /**
+   * 匯出修圖後的圖片
+   */
+  exportEditedImage() {
+    const sourceCanvas = this.photoEditorCanvas;
+    const maxSize = 800;
+    const width = sourceCanvas.width;
+    const height = sourceCanvas.height;
+
+    let targetCanvas = sourceCanvas;
+
+    if (Math.max(width, height) > maxSize) {
+      const scale = maxSize / Math.max(width, height);
+      const targetWidth = Math.round(width * scale);
+      const targetHeight = Math.round(height * scale);
+      const resizedCanvas = document.createElement('canvas');
+      resizedCanvas.width = targetWidth;
+      resizedCanvas.height = targetHeight;
+      const ctx = resizedCanvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(sourceCanvas, 0, 0, targetWidth, targetHeight);
+      }
+      targetCanvas = resizedCanvas;
+    }
+
+    return targetCanvas.toDataURL('image/jpeg', 0.7);
+  }
+
+  /**
+   * 備份目前照片
+   */
+  backupCurrentPhoto() {
+    this.photoBackup = {
+      base64: this.currentPhotoBase64,
+      previewSrc: this.previewImg?.src || '',
+      previewVisible: this.photoPreview?.style.display === 'block'
+    };
+  }
+
+  /**
+   * 還原照片備份
+   */
+  restorePhotoBackup() {
+    if (!this.photoBackup) return;
+
+    if (this.photoBackup.base64) {
+      this.currentPhotoBase64 = this.photoBackup.base64;
+      this.previewImg.src = this.photoBackup.previewSrc;
+      this.photoPreview.style.display = this.photoBackup.previewVisible ? 'block' : 'none';
+    } else {
+      this.removePhoto();
+    }
+
+    if (this.photoInput) {
+      this.photoInput.value = '';
+    }
+
+    this.photoBackup = null;
   }
 
   /**
