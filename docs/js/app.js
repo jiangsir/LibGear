@@ -100,8 +100,17 @@ class LibGearApp {
 
     // 拍照相關
     if (this.takePhotoBtn && this.photoInput) {
-      this.takePhotoBtn.addEventListener('click', () => this.photoInput.click());
+      console.log('✅ 拍照按鈕事件已綁定');
+      this.takePhotoBtn.addEventListener('click', () => {
+        console.log('📸 拍照按鈕被點擊');
+        this.photoInput.click();
+      });
       this.photoInput.addEventListener('change', (e) => this.handlePhotoSelect(e));
+    } else {
+      console.error('❌ 拍照元素未找到:', {
+        takePhotoBtn: this.takePhotoBtn,
+        photoInput: this.photoInput
+      });
     }
 
     if (this.removePhotoBtn) {
@@ -228,13 +237,33 @@ class LibGearApp {
    * 初始化應用
    */
   async initialize() {
+    console.log('🚀 開始初始化應用...');
+    
     // 檢查是否有 ID Token
     const idToken = this.api.getIdToken();
+    console.log('📋 ID Token 檢查:', idToken ? '已存在' : '不存在');
+    
     if (!idToken) {
       console.log('未登入，顯示登入提示');
-      if (this.loginPrompt) this.loginPrompt.style.display = 'block';
-      if (this.loginSection) this.loginSection.style.display = 'block';
-      if (this.userInfoSection) this.userInfoSection.style.display = 'none';
+      console.log('登入區域元素:', {
+        loginPrompt: this.loginPrompt,
+        loginSection: this.loginSection,
+        userInfoSection: this.userInfoSection
+      });
+      
+      if (this.loginPrompt) {
+        this.loginPrompt.style.display = 'block';
+        console.log('✅ 登入提示已顯示');
+      }
+      if (this.loginSection) {
+        this.loginSection.style.display = 'block';
+        console.log('✅ 登入按鈕區域已顯示');
+      }
+      if (this.userInfoSection) {
+        this.userInfoSection.style.display = 'none';
+        console.log('✅ 使用者資訊區域已隱藏');
+      }
+      
       this.showMessage('請先使用 Google 帳號登入', 'warning');
       return;
     }
