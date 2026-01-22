@@ -166,32 +166,6 @@ class LibGearApp {
       await this.initialize();
     } catch (error) {
       console.error('登入處理失敗:', error);
-      this.showMessage('登入失敗: ' + error.message, 'danger');
-    }
-  }
-
-  /**
-   * 處理登出
-   */
-  handleLogout() {
-    console.log('登出');
-    
-    // 清除 ID Token
-    this.api.setIdToken(null);
-    this.currentUser = null;
-    
-    // 顯示登入按鈕
-    if (this.loginSection) this.loginSection.style.display = 'block';
-    if (this.userInfoSection) this.userInfoSection.style.display = 'none';
-    if (this.loginPrompt) this.loginPrompt.style.display = 'block';
-    
-    // 清空數據
-    this.gears = [];
-    this.unreturned = [];
-    if (this.unreturnedTable) this.unreturnedTable.innerHTML = '';
-    if (this.recordsTableBody) this.recordsTableBody.innerHTML = '';
-    
-    this.showMessage('已登出', 'info');
   }
 
   /**
@@ -223,9 +197,10 @@ class LibGearApp {
     this.api.setIdToken(null);
     this.currentUser = null;
     
-    // 顯示登入提示
+    // 顯示登入區域，隱藏使用者資訊
     if (this.loginPrompt) this.loginPrompt.style.display = 'block';
-    if (this.loginStatus) this.loginStatus.style.display = 'none';
+    if (this.loginSection) this.loginSection.style.display = 'block';
+    if (this.userInfoSection) this.userInfoSection.style.display = 'none';
     
     // 清空界面
     this.showMessage('已登出', 'info');
