@@ -126,9 +126,10 @@ class APIClient {
       gearId,
       photoUrl
     });
-    });
   }
 
+  /**
+   * 記錄設備歸還
   /**
    * 記錄設備歸還
    * @param {string} borrowerId - 借用人學號
