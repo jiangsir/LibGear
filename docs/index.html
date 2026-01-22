@@ -130,17 +130,17 @@
                                             <i class="bi bi-camera"></i> 設備照片（選填）
                                         </label>
                                         <div class="input-group">
-                                            <input type="file" class="form-control" id="photo-input-camera" 
-                                                   accept="image/*" capture="environment" style="display: none;">
-                                            <input type="file" class="form-control" id="photo-input-gallery" 
-                                                   accept="image/*" style="display: none;">
+                                            <input type="file" class="form-control file-input-hidden" id="photo-input-camera" 
+                                                   accept="image/*" capture="environment">
+                                            <input type="file" class="form-control file-input-hidden" id="photo-input-gallery" 
+                                                   accept="image/*">
                                             <div class="btn-group w-100" role="group">
-                                                <button type="button" class="btn btn-outline-primary" id="take-photo-btn">
+                                                <label class="btn btn-outline-primary" id="take-photo-btn" for="photo-input-camera">
                                                     <i class="bi bi-camera-fill"></i> 拍照
-                                                </button>
-                                                <button type="button" class="btn btn-outline-secondary" id="choose-photo-btn">
+                                                </label>
+                                                <label class="btn btn-outline-secondary" id="choose-photo-btn" for="photo-input-gallery">
                                                     <i class="bi bi-image"></i> 選擇照片
-                                                </button>
+                                                </label>
                                             </div>
                                         </div>
                                         <div id="photo-preview" class="mt-2" style="display: none;">

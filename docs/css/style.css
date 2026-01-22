@@ -302,6 +302,16 @@ body {
   margin-top: 0.25rem;
 }
 
+/* 隱藏檔案輸入但保持可觸發 */
+.file-input-hidden {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* 簡易修圖 */
 .photo-editor-canvas-wrap {
   background: #f1f3f5;

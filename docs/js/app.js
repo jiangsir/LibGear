@@ -87,10 +87,13 @@ class LibGearApp {
     this.resetEditBtn = document.getElementById('reset-edit-btn');
     this.applyEditBtn = document.getElementById('apply-edit-btn');
 
-    this.photoEditorModalInstance = this.photoEditorModal ? new bootstrap.Modal(this.photoEditorModal, {
-      backdrop: 'static',
-      keyboard: false
-    }) : null;
+    const hasBootstrapModal = typeof bootstrap !== 'undefined' && bootstrap?.Modal;
+    this.photoEditorModalInstance = (this.photoEditorModal && hasBootstrapModal)
+      ? new bootstrap.Modal(this.photoEditorModal, {
+        backdrop: 'static',
+        keyboard: false
+      })
+      : null;
 
     this.editorImage = null;
     this.editorState = null;
