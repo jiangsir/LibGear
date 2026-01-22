@@ -498,22 +498,31 @@ class LibGearApp {
 
       // 如果有照片，先上傳到 Drive
       if (this.currentPhotoBase64) {
+        console.log('📸 偵測到照片，準備上傳...');
+        console.log('照片 Base64 長度:', this.currentPhotoBase64.length);
+        
         this.showMessage('正在上傳照片...', 'info');
         const fileName = `${borrowerId}_${gearId}_${Date.now()}.jpg`;
         
         const uploadResult = await this.api.uploadPhoto(this.currentPhotoBase64, fileName);
+        console.log('📤 上傳結果:', uploadResult);
         
         if (uploadResult.success) {
           photoUrl = uploadResult.url;
-          console.log('照片上傳成功:', photoUrl);
+          console.log('✅ 照片上傳成功，URL:', photoUrl);
         } else {
-          console.warn('照片上傳失敗:', uploadResult.error);
-          // 照片上傳失敗不影響借用流程
+          console.error('❌ 照片上傳失敗:', uploadResult.error);
+          this.showMessage('照片上傳失敗，但繼續借用流程', 'warning');
         }
+      } else {
+        console.log('📷 無照片需要上傳');
       }
 
+      console.log('🔄 呼叫 recordBorrow，photoUrl:', photoUrl);
+      
       // 記錄借用
       const result = await this.api.recordBorrow(borrowerId, gearId, photoUrl);
+      console.log('📋 recordBorrow 結果:', result);
 
       if (result.success) {
         this.showMessage(MESSAGES.SUCCESS.BORROW, 'success');

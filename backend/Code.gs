@@ -9,6 +9,10 @@
  *    - SHEET_ID: Google Spreadsheet ID
  *    - ALLOWED_EMAILS: 允許的郵箱列表
  * 4. 部署為網頁應用程式 (Execute as: Me, Access: Anyone)
+ * 
+ * 必要權限：
+ * - https://www.googleapis.com/auth/spreadsheets（讀寫 Sheets）
+ * - https://www.googleapis.com/auth/drive.file（建立和管理 Drive 檔案）
  */
 
 // ===== 設定值 =====

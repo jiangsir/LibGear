@@ -19,11 +19,19 @@
   - [ ] `getUnreturnedGears()` 返回 `photoUrl`
   - [ ] `getRecordsByDate()` 返回 `photoUrl`
 
-- [ ] **重新部署 Apps Script**
+- [ ] **⚠️ 設定 Drive 權限（重要！）**
+  - [ ] 在 Apps Script 編輯器中開啟「設定」
+  - [ ] 勾選「顯示 appsscript.json」
+  - [ ] 更新 `appsscript.json` 加入 Drive 權限
+  - [ ] 詳細步驟請參考 [DRIVE_PERMISSION_SETUP.md](DRIVE_PERMISSION_SETUP.md)
+
+- [ ] **重新部署並授權**
   - [ ] 點擊「部署」→「管理部署作業」
   - [ ] 選擇現有部署，點擊「編輯」
-  - [ ] 版本選擇「新增版本」
+  - [ ] 版本選擇「新增版本」，說明：`新增 Drive 權限`
   - [ ] 點擊「部署」
+  - [ ] **授權 Drive 權限**（會彈出授權視窗）
+  - [ ] 允許應用程式訪問 Google Drive
 
 ### 2. 前端 (GitHub Pages)
 
