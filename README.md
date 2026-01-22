@@ -1,3 +1,4 @@
 # LibGear
 
-Library Management System
+## Github pages 網址：
+## https://jiangsir.github.io/LibGear/
