@@ -14,7 +14,7 @@
 // ===== 設定值 =====
 const SHEET_ID = '1jcvw1Hfv_9oO2OhFT6huOPhMtnBr_hlR6TJv_8pr6U4'; // 替換為實際的 Google Sheet ID
 const ALLOWED_DOMAIN = '@tea.nknush.kh.edu.tw'; // 允許的郵箱域
-const VERSION = 'v1.2.1'; // 更新：移除借用人驗證限制，任何學號都可借用
+const BACKEND_VERSION = 'v1.2.1'; // 更新：移除借用人驗證限制，任何學號都可借用
 
 // ===== 工作表名稱 =====
 const SHEET_NAMES = {
@@ -85,7 +85,7 @@ function doGet(e) {
           <h1>📚 LibGear 後端系統</h1>
           
           <div class="status info">
-            <strong>版本：</strong> ${VERSION}
+            <strong>後端版本：</strong> ${BACKEND_VERSION}
           </div>
           
           <div class="status ${userEmail ? 'success' : 'error'}">
@@ -154,7 +154,7 @@ function doPost(e) {
         result = checkAuth(idToken);
         break;
       case 'getVersion':
-        result = { success: true, version: VERSION };
+        result = { success: true, version: BACKEND_VERSION };
         break;
       default:
         result = { success: false, error: 'UNKNOWN_ACTION', message: '未知的動作' };

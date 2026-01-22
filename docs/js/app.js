@@ -256,9 +256,17 @@ class LibGearApp {
    */
   async checkVersion() {
     try {
+      const frontendVersion = SYSTEM_CONFIG.VERSION || 'unknown';
       const result = await this.api.getVersion();
+      
       if (result.success && result.version) {
-        console.log(`%c📚 LibGear 後端版本: ${result.version}`, 'color: #4285f4; font-weight: bold; font-size: 14px;');
+        console.log(
+          `%c📚 LibGear 系統版本\n` +
+          `前端: ${frontendVersion} | 後端: ${result.version}`,
+          'color: #4285f4; font-weight: bold; font-size: 14px; line-height: 1.6;'
+        );
+      } else {
+        console.log(`%c📚 LibGear 前端版本: ${frontendVersion}`, 'color: #4285f4; font-weight: bold; font-size: 14px;');
       }
     } catch (error) {
       console.warn('無法獲取後端版本:', error.message);

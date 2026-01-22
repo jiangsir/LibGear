@@ -21,7 +21,7 @@ const API_CONFIG = {
 // 系統設定
 const SYSTEM_CONFIG = {
   // 版本號
-  VERSION: 'v1.0.0',
+  VERSION: 'v1.1.0', // 修復 escapeHtml 類型檢查問題
   
   // 設備條碼格式：5 位數字
   GEAR_ID_FORMAT: /^\d{5}$/,
