@@ -126,32 +126,12 @@ class LibGearApp {
     }
 
     // 拍照相關
-    if (this.takePhotoBtn && this.photoInputCamera) {
-      console.log('✅ 拍照按鈕事件已綁定');
-      this.takePhotoBtn.addEventListener('click', () => {
-        console.log('📸 拍照按鈕被點擊');
-        this.photoInputCamera.click();
-      });
+    if (this.photoInputCamera) {
       this.photoInputCamera.addEventListener('change', (e) => this.handlePhotoSelect(e));
-    } else {
-      console.error('❌ 拍照元素未找到:', {
-        takePhotoBtn: this.takePhotoBtn,
-        photoInputCamera: this.photoInputCamera
-      });
     }
 
-    if (this.choosePhotoBtn && this.photoInputGallery) {
-      console.log('✅ 選擇照片按鈕事件已綁定');
-      this.choosePhotoBtn.addEventListener('click', () => {
-        console.log('🖼️ 選擇照片按鈕被點擊');
-        this.photoInputGallery.click();
-      });
+    if (this.photoInputGallery) {
       this.photoInputGallery.addEventListener('change', (e) => this.handlePhotoSelect(e));
-    } else {
-      console.error('❌ 相簿元素未找到:', {
-        choosePhotoBtn: this.choosePhotoBtn,
-        photoInputGallery: this.photoInputGallery
-      });
     }
 
     if (this.removePhotoBtn) {
