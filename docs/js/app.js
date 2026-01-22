@@ -66,8 +66,10 @@ class LibGearApp {
     this.logoutBtn = document.getElementById('logout-btn');
     
     // 照片相關元素
-    this.photoInput = document.getElementById('photo-input');
+    this.photoInputCamera = document.getElementById('photo-input-camera');
+    this.photoInputGallery = document.getElementById('photo-input-gallery');
     this.takePhotoBtn = document.getElementById('take-photo-btn');
+    this.choosePhotoBtn = document.getElementById('choose-photo-btn');
     this.photoPreview = document.getElementById('photo-preview');
     this.previewImg = document.getElementById('preview-img');
     this.removePhotoBtn = document.getElementById('remove-photo-btn');
@@ -121,17 +123,31 @@ class LibGearApp {
     }
 
     // 拍照相關
-    if (this.takePhotoBtn && this.photoInput) {
+    if (this.takePhotoBtn && this.photoInputCamera) {
       console.log('✅ 拍照按鈕事件已綁定');
       this.takePhotoBtn.addEventListener('click', () => {
         console.log('📸 拍照按鈕被點擊');
-        this.photoInput.click();
+        this.photoInputCamera.click();
       });
-      this.photoInput.addEventListener('change', (e) => this.handlePhotoSelect(e));
+      this.photoInputCamera.addEventListener('change', (e) => this.handlePhotoSelect(e));
     } else {
       console.error('❌ 拍照元素未找到:', {
         takePhotoBtn: this.takePhotoBtn,
-        photoInput: this.photoInput
+        photoInputCamera: this.photoInputCamera
+      });
+    }
+
+    if (this.choosePhotoBtn && this.photoInputGallery) {
+      console.log('✅ 選擇照片按鈕事件已綁定');
+      this.choosePhotoBtn.addEventListener('click', () => {
+        console.log('🖼️ 選擇照片按鈕被點擊');
+        this.photoInputGallery.click();
+      });
+      this.photoInputGallery.addEventListener('change', (e) => this.handlePhotoSelect(e));
+    } else {
+      console.error('❌ 相簿元素未找到:', {
+        choosePhotoBtn: this.choosePhotoBtn,
+        photoInputGallery: this.photoInputGallery
       });
     }
 
@@ -682,6 +698,12 @@ class LibGearApp {
     if (this.photoInput) {
       this.photoInput.value = '';
     }
+    if (this.photoInputCamera) {
+      this.photoInputCamera.value = '';
+    }
+    if (this.photoInputGallery) {
+      this.photoInputGallery.value = '';
+    }
 
     this.photoBackup = null;
   }
@@ -742,7 +764,8 @@ class LibGearApp {
     this.currentPhotoBase64 = null;
     this.photoPreview.style.display = 'none';
     this.previewImg.src = '';
-    this.photoInput.value = '';
+    if (this.photoInputCamera) this.photoInputCamera.value = '';
+    if (this.photoInputGallery) this.photoInputGallery.value = '';
   }
 
   /**

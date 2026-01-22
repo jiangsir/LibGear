@@ -130,11 +130,18 @@
                                             <i class="bi bi-camera"></i> 設備照片（選填）
                                         </label>
                                         <div class="input-group">
-                                            <input type="file" class="form-control" id="photo-input" 
-                                                  accept="image/*" style="display: none;">
-                                            <button type="button" class="btn btn-outline-primary w-100" id="take-photo-btn">
-                                                <i class="bi bi-camera-fill"></i> 拍照或選擇照片
-                                            </button>
+                                            <input type="file" class="form-control" id="photo-input-camera" 
+                                                   accept="image/*" capture="environment" style="display: none;">
+                                            <input type="file" class="form-control" id="photo-input-gallery" 
+                                                   accept="image/*" style="display: none;">
+                                            <div class="btn-group w-100" role="group">
+                                                <button type="button" class="btn btn-outline-primary" id="take-photo-btn">
+                                                    <i class="bi bi-camera-fill"></i> 拍照
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary" id="choose-photo-btn">
+                                                    <i class="bi bi-image"></i> 選擇照片
+                                                </button>
+                                            </div>
                                         </div>
                                         <div id="photo-preview" class="mt-2" style="display: none;">
                                             <img id="preview-img" src="" alt="預覽" class="img-thumbnail" style="max-width: 200px; max-height: 200px;">
